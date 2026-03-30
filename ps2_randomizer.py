@@ -3,16 +3,28 @@ import json
 import os
 import urllib.request
 import urllib.error
+import ssl
 from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-# Dictionary of consoles and their master list URLs 
+# 1. Bypass SSL errors globally
+try:
+    ssl._create_default_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+
+# 2. Disguise Python as a normal browser
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')]
+urllib.request.install_opener(opener)
+
+# NEW FIX: Pointing strictly to the compiled GitHub "Releases" links to avoid 404s!
 CONSOLES = {
-    "PS1": "https://raw.githubusercontent.com/namuol/titlegen/master/titles/games/ps1.txt",
-    "PS2": "https://raw.githubusercontent.com/namuol/titlegen/master/titles/games/ps2.txt",
-    "PS3": "https://raw.githubusercontent.com/namuol/titlegen/master/titles/games/ps3.txt",
-    "PSP": "https://raw.githubusercontent.com/namuol/titlegen/master/titles/games/psp.txt"
+    "PS1": "https://github.com/niemasd/GameDB-PSX/releases/latest/download/PSX.titles.json",
+    "PS2": "https://github.com/niemasd/GameDB-PS2/releases/latest/download/PS2.titles.json",
+    "PS3": "https://github.com/niemasd/GameDB-PS3/releases/latest/download/PS3.titles.json",
+    "PSP": "https://github.com/niemasd/GameDB-PSP/releases/latest/download/PSP.titles.json"
 }
 
 class RandomizerApp:
@@ -22,13 +34,13 @@ class RandomizerApp:
         self.root.geometry("800x600")
         self.root.configure(padx=20, pady=20)
 
-        self.current_console = tk.StringVar(value="PS2")
+        self.current_console = tk.StringVar(value="PSP") # Defaulted to PSP for you to test!
         self.files = {}
         self.all_games = []
         self.remaining_games = []
 
         self.setup_ui()
-        self.change_console() # Load initial console data
+        self.change_console() 
 
     def get_files(self):
         prefix = self.current_console.get().lower()
@@ -40,7 +52,6 @@ class RandomizerApp:
         }
 
     def setup_ui(self):
-        # --- Top Section: Console Selection & Stats ---
         top_frame = tk.Frame(self.root)
         top_frame.pack(fill="x", pady=(0, 20))
 
@@ -53,13 +64,9 @@ class RandomizerApp:
         self.stats_label = tk.Label(top_frame, text="Stats: Loading...", font=("Arial", 12), fg="blue")
         self.stats_label.pack(side="right")
 
-        # --- Middle Section: The 10 Games Display ---
         self.games_frame = tk.LabelFrame(self.root, text=" Your 10 Random Games ", font=("Arial", 12, "bold"), padx=10, pady=10)
         self.games_frame.pack(fill="both", expand=True, pady=(0, 20))
 
-        self.game_rows = [] # Will hold the UI elements for the 10 games
-
-        # --- Bottom Section: Action Buttons ---
         bottom_frame = tk.Frame(self.root)
         bottom_frame.pack(fill="x")
 
@@ -72,20 +79,41 @@ class RandomizerApp:
         console_name = self.current_console.get()
         url = CONSOLES[console_name]
 
+        # AUTO-CLEAN: Delete corrupted 404 text files automatically
+        if os.path.exists(self.files['master']):
+            try:
+                with open(self.files['master'], 'r', encoding='utf-8', errors='ignore') as f:
+                    preview = f.read(1000).lower()
+                if "<html" in preview or "404" in preview or "not found" in preview or os.path.getsize(self.files['master']) < 100:
+                    os.remove(self.files['master'])
+            except:
+                pass
+
         # Download if missing
         if not os.path.exists(self.files['master']):
             self.stats_label.config(text="Downloading database... Please wait.", fg="orange")
-            self.root.update() # Force UI to update before downloading
+            self.root.update() 
             try:
-                urllib.request.urlretrieve(url, self.files['master'])
-            except Exception:
-                messagebox.showerror("Download Error", f"Failed to download {console_name} list. Check internet.")
+                req = urllib.request.Request(url)
+                with urllib.request.urlopen(req) as response:
+                    data = response.read().decode('utf-8')
+
+                # Parse the JSON databases into our clean text format
+                json_data = json.loads(data)
+                titles = sorted(list(set(json_data.values())))
+                with open(self.files['master'], 'w', encoding='utf-8') as f:
+                    for title in titles:
+                        if title.strip():
+                            f.write(f"{title.strip()}\n")
+                        
+            except Exception as e:
+                messagebox.showerror("Download Error", f"Failed to download {console_name} list.\n\nError: {str(e)}")
+                self.stats_label.config(text="Download Failed", fg="red")
                 return
 
         self.load_pools()
         self.update_stats()
         
-        # Clear the display when switching consoles
         for widget in self.games_frame.winfo_children():
             widget.destroy()
 
@@ -120,11 +148,9 @@ class RandomizerApp:
         for game in selected_games:
             self.remaining_games.remove(game)
 
-        # Save state
         with open(self.files['state'], 'w', encoding='utf-8') as f:
             json.dump(self.remaining_games, f, indent=4)
 
-        # Save history
         with open(self.files['history'], 'a', encoding='utf-8') as f:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             f.write(f"--- Roll on {timestamp} ---\n")
@@ -136,7 +162,6 @@ class RandomizerApp:
         self.display_games(selected_games)
 
     def display_games(self, games):
-        # Clear the previous games
         for widget in self.games_frame.winfo_children():
             widget.destroy()
 
@@ -144,23 +169,17 @@ class RandomizerApp:
             row = tk.Frame(self.games_frame)
             row.pack(fill="x", pady=5)
 
-            # Game Title
             tk.Label(row, text=f"{index}. {game}", font=("Arial", 12), anchor="w").pack(side="left", fill="x", expand=True)
-
-            # Copy Button
             tk.Button(row, text="📋 Copy", width=8, command=lambda g=game: self.copy_to_clipboard(g)).pack(side="right", padx=5)
-            
-            # Favorite Button
             tk.Button(row, text="⭐ Fav", width=8, command=lambda g=game: self.save_favorite(g)).pack(side="right", padx=5)
 
     def copy_to_clipboard(self, text):
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
-        self.root.update() # Keep clipboard active after closing
+        self.root.update()
         messagebox.showinfo("Copied", f"Copied to clipboard:\n{text}")
 
     def save_favorite(self, game):
-        # Check if already in favorites to avoid duplicates
         if os.path.exists(self.files['favorites']):
             with open(self.files['favorites'], 'r', encoding='utf-8') as f:
                 if game in f.read():
@@ -183,7 +202,6 @@ class RandomizerApp:
             messagebox.showinfo("Favorites", "Your favorites list is empty!")
             return
 
-        # Create a new popup window for favorites
         fav_window = tk.Toplevel(self.root)
         fav_window.title(f"{self.current_console.get()} Favorites")
         fav_window.geometry("500x400")
@@ -199,12 +217,10 @@ class RandomizerApp:
             if not selected_indices:
                 return
             
-            # Remove from listbox and list backwards to not mess up index order
             for i in reversed(selected_indices):
                 listbox.delete(i)
                 favorites.pop(i)
 
-            # Save updated list
             with open(self.files['favorites'], 'w', encoding='utf-8') as f:
                 for game in favorites:
                     f.write(f"{game}\n")
@@ -217,7 +233,7 @@ class RandomizerApp:
             for key in ['state', 'history', 'favorites']:
                 if os.path.exists(self.files[key]):
                     os.remove(self.files[key])
-            self.change_console() # Reload everything fresh
+            self.change_console() 
             messagebox.showinfo("Reset Complete", "The console pool has been completely reset.")
 
 if __name__ == "__main__":
