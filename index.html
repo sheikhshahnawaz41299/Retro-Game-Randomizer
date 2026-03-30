@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Randomizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <style>
+        /* --- STYLES (The Paint Job) --- */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #90caf9;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --accent-green: #81c784;
+            --accent-red: #e57373;
+            --accent-yellow: #fff176;
+            --accent-orange: #ffb74d;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Phone Simulator Wrapper */
+        #app-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-color: var(--bg-color);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* Top App Bar */
+        header {
+            background-color: var(--surface-color);
+            padding: 15px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        /* Controls Section */
+        .controls {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        select {
+            background-color: var(--surface-color);
+            color: var(--text-main);
+            border: 1px solid #555;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        #stats-text {
+            color: var(--primary-color);
+            font-size: 14px;
+        }
+
+        /* Main Scrollable Area */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            padding-bottom: 80px; /* Room for bottom bar */
+        }
+
+        /* Game Cards */
+        .card {
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .icon-btn.yellow { color: var(--accent-yellow); }
+
+        /* Bottom Navigation Bar */
+        nav {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-color: var(--surface-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+            gap: 5px;
+        }
+
+        .nav-btn.danger { color: var(--accent-red); }
+
+        /* Toast / Snackbar */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: var(--accent-green);
+            color: #000;
+            text-align: center;
+            border-radius: 4px;
+            padding: 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 90px;
+        }
+
+        /* Modals (Popups) */
+        .modal-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 50;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal {
+            background-color: var(--surface-color);
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        .modal-body { flex: 1; overflow-y: auto; margin-bottom: 15px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        
+        .btn {
+            background: none; border: none; padding: 10px 15px;
+            border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+        .btn-cancel { color: var(--primary-color); }
+        .btn-danger { color: var(--accent-red); }
+
+        .checkbox-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+        }
+        .checkbox-row input { transform: scale(1.2); }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <header>Retro Randomizer</header>
+        
+        <div class="controls">
+            <select id="console-select" onchange="changeConsole()">
+                <option value="PSP">PSP</option>
+                <option value="PS1">PS1</option>
+                <option value="PS2">PS2</option>
+                <option value="PS3">PS3</option>
+            </select>
+            <span id="stats-text">Loading...</span>
+        </div>
+
+        <main id="games-container">
+            </main>
+
+        <nav>
+            <button class="nav-btn" onclick="rollGames()">
+                <span class="material-symbols-outlined">casino</span>
+                Roll 10
+            </button>
+            <button class="nav-btn" onclick="openFavorites()">
+                <span class="material-symbols-outlined">star</span>
+                Favorites
+            </button>
+            <button class="nav-btn danger" onclick="openReset()">
+                <span class="material-symbols-outlined">warning</span>
+                Reset
+            </button>
+        </nav>
+
+        <div id="toast">Message here</div>
+
+        <div id="fav-modal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-title">Manage Favorites</div>
+                <div class="modal-body" id="fav-list">
+                    </div>
+                <div class="modal-actions">
+                    <button class="btn btn-cancel" onclick="closeModal('fav-modal')">Cancel</button>
+                    <button class="btn btn-danger" onclick="deleteSelectedFavorites()">Remove Selected</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="reset-modal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-title">⚠️ Factory Reset</div>
+                <div class="modal-body">
+                    This will delete all history and favorites for <span id="reset-console-name"></span>. Are you sure?
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-cancel" onclick="closeModal('reset-modal')">Cancel</button>
+                    <button class="btn btn-danger" onclick="confirmReset()">YES, RESET</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- JAVASCRIPT (The Brain) --- */
+        
+        const CONSOLES = {
+            "PS1": "https://github.com/niemasd/GameDB-PSX/releases/latest/download/PSX.titles.json",
+            "PS2": "https://github.com/niemasd/GameDB-PS2/releases/latest/download/PS2.titles.json",
+            "PS3": "https://github.com/niemasd/GameDB-PS3/releases/latest/download/PS3.titles.json",
+            "PSP": "https://github.com/niemasd/GameDB-PSP/releases/latest/download/PSP.titles.json"
+        };
+
+        let currentConsole = "PSP";
+        let allGames = [];
+        let remainingGames = [];
+
+        // App Initialization
+        window.onload = () => {
+            loadConsoleData();
+        };
+
+        function changeConsole() {
+            currentConsole = document.getElementById('console-select').value;
+            loadConsoleData();
+        }
+
+        function updateStats() {
+            const total = allGames.length;
+            const remaining = remainingGames.length;
+            const rolled = total - remaining;
+            const statsText = document.getElementById('stats-text');
+            
+            if (total > 0) {
+                const percentage = ((rolled / total) * 100).toFixed(1);
+                statsText.innerText = `Progress: ${rolled}/${total} (${percentage}%)`;
+            } else {
+                statsText.innerText = `Progress: 0/0 (0%)`;
+            }
+        }
+
+	async function loadConsoleData() {
+            const statsText = document.getElementById('stats-text');
+            document.getElementById('games-container').innerHTML = ''; // Clear screen
+            
+            // Check Local Storage first
+            const storedMaster = localStorage.getItem(`${currentConsole}_master`);
+            
+            if (storedMaster) {
+                allGames = JSON.parse(storedMaster);
+                loadRemainingPool();
+                return;
+            }
+
+            statsText.innerText = `Downloading ${currentConsole}...`;
+            statsText.style.color = 'var(--accent-orange)';
+            
+            const targetUrl = CONSOLES[currentConsole];
+            let data = null;
+
+            // Strategy 1: Direct Fetch (In case the browser allows it)
+            try {
+                const res = await fetch(targetUrl);
+                if (res.ok) data = await res.json();
+            } catch (e) { console.log("Direct fetch blocked by CORS"); }
+
+	// Strategy 2: Enhanced Proxy for Mobile
+            if (!data) {
+                try {
+                    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (res.ok) data = await res.json();
+                } catch (e) { console.log("Proxy 1 failed"); }
+            }
+
+            // Strategy 3: allorigins GET (The bulletproof backup method)
+            if (!data) {
+                try {
+                    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+                    if (res.ok) {
+                        const raw = await res.json();
+                        data = JSON.parse(raw.contents); // Unpack the hidden data string
+                    }
+                } catch (e) { console.log("Proxy 2 blocked"); }
+            }
+
+            // If the browser managed to block all 3 strategies
+            if (!data) {
+                showToast("Download Blocked by Browser!", "var(--accent-red)");
+                statsText.innerText = "Download Blocked";
+                return;
+            }
+
+            try {
+                // Get unique titles, sort them, filter blanks
+                let titles = [...new Set(Object.values(data))].filter(t => t.trim() !== "").sort();
+                
+                allGames = titles;
+                localStorage.setItem(`${currentConsole}_master`, JSON.stringify(allGames));
+                
+                statsText.style.color = 'var(--primary-color)';
+                loadRemainingPool();
+            } catch (error) {
+                showToast("Data Processing Failed!", "var(--accent-red)");
+                statsText.innerText = "Error Parsing";
+            }
+        }
+
+        function loadRemainingPool() {
+            const storedState = localStorage.getItem(`${currentConsole}_remaining`);
+            if (storedState) {
+                remainingGames = JSON.parse(storedState);
+            } else {
+                remainingGames = [...allGames]; // Copy master list
+            }
+            updateStats();
+        }
+
+        function rollGames() {
+            if (remainingGames.length === 0) {
+                showToast("All games rolled! Reset to start over.", "var(--accent-orange)");
+                return;
+            }
+
+            // Shuffle array using sort trick, then slice up to 10
+            let shuffled = remainingGames.sort(() => 0.5 - Math.random());
+            let picked = shuffled.slice(0, 10);
+
+            // Remove picked games from remaining pool
+            remainingGames = remainingGames.filter(g => !picked.includes(g));
+
+            // Save new state
+            localStorage.setItem(`${currentConsole}_remaining`, JSON.stringify(remainingGames));
+            
+            // Note: In a web app, writing to a local .txt file for history is blocked by security. 
+            // We save it to Local Storage instead.
+            let history = JSON.parse(localStorage.getItem(`${currentConsole}_history`) || "[]");
+            history.push({ date: new Date().toLocaleString(), games: picked });
+            localStorage.setItem(`${currentConsole}_history`, JSON.stringify(history));
+
+            updateStats();
+            displayGames(picked);
+            showToast("Rolled 10 new games!", "var(--accent-green)");
+        }
+
+        function displayGames(games) {
+            const container = document.getElementById('games-container');
+            container.innerHTML = ''; // Clear old games
+
+            games.forEach((game, index) => {
+                const safeGameName = game.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-title">${index + 1}. ${game}</div>
+                    <div class="card-actions">
+                        <button class="icon-btn" onclick="copyText('${safeGameName}')" title="Copy">
+                            <span class="material-symbols-outlined">content_copy</span>
+                        </button>
+                        <button class="icon-btn yellow" onclick="saveFavorite('${safeGameName}')" title="Favorite">
+                            <span class="material-symbols-outlined">star_border</span>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Copied: " + text, "var(--primary-color)");
+            });
+        }
+
+        function saveFavorite(game) {
+            let favs = JSON.parse(localStorage.getItem(`${currentConsole}_favorites`) || "[]");
+            if (favs.includes(game)) {
+                showToast("Already in favorites!", "var(--accent-orange)");
+                return;
+            }
+            favs.push(game);
+            localStorage.setItem(`${currentConsole}_favorites`, JSON.stringify(favs));
+            showToast("Saved to Favorites!", "var(--accent-yellow)");
+        }
+
+        /* --- Modals --- */
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function openFavorites() {
+            let favs = JSON.parse(localStorage.getItem(`${currentConsole}_favorites`) || "[]");
+            if (favs.length === 0) {
+                showToast("Favorites list is empty!", "var(--accent-orange)");
+                return;
+            }
+
+            const favList = document.getElementById('fav-list');
+            favList.innerHTML = '<p style="margin-top:0; color:var(--text-muted);">Check games to REMOVE:</p>';
+            
+            favs.forEach((game, index) => {
+                favList.innerHTML += `
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="fav-${index}" value="${game.replace(/"/g, "&quot;")}">
+                        <label for="fav-${index}">${game}</label>
+                    </div>
+                `;
+            });
+
+            document.getElementById('fav-modal').style.display = 'flex';
+        }
+
+        function deleteSelectedFavorites() {
+            let favs = JSON.parse(localStorage.getItem(`${currentConsole}_favorites`) || "[]");
+            const checkboxes = document.querySelectorAll('#fav-list input[type="checkbox"]');
+            
+            let itemsToRemove = [];
+            checkboxes.forEach(cb => {
+                if(cb.checked) itemsToRemove.push(cb.value);
+            });
+
+            // Keep games that are NOT in the itemsToRemove array
+            favs = favs.filter(game => !itemsToRemove.includes(game));
+            
+            localStorage.setItem(`${currentConsole}_favorites`, JSON.stringify(favs));
+            closeModal('fav-modal');
+            showToast("Favorites updated!", "var(--accent-green)");
+        }
+
+        function openReset() {
+            document.getElementById('reset-console-name').innerText = currentConsole;
+            document.getElementById('reset-modal').style.display = 'flex';
+        }
+
+        function confirmReset() {
+            // Delete from Local Storage
+            localStorage.removeItem(`${currentConsole}_remaining`);
+            localStorage.removeItem(`${currentConsole}_history`);
+            localStorage.removeItem(`${currentConsole}_favorites`);
+            
+            // Aggressive Memory Wipe
+            remainingGames = [...allGames];
+            
+            // UI Wipe
+            updateStats();
+            document.getElementById('games-container').innerHTML = '';
+            
+            closeModal('reset-modal');
+            showToast(`${currentConsole} progress reset to 0!`, "var(--accent-green)");
+        }
+
+        function showToast(message, color) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.style.backgroundColor = color;
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+    </script>
+</body>
+</html>

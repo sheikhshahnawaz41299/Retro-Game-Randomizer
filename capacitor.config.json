@@ -1,0 +1,6 @@
+{
+  "appId": "com.retrorandomizer.app",
+  "appName": "Retro Randomizer",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
