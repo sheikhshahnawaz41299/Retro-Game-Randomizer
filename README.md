@@ -1,37 +1,38 @@
-# 🎮 Retro Game Randomizer V2.0
+# 🎮 Retro Game Randomizer (Mobile APK)
 
-A lightweight, GUI-based Python application that helps you discover games from massive retro console libraries (PS1, PS2, PS3, PSP) without ever rolling the same game twice. 
+A lightweight, privacy-focused Android application designed to help retro gamers pick their next adventure. No more "analysis paralysis"—just upload your library, roll the dice, and start playing.
 
-Whether you are looking for your next emulation playthrough or just want to explore the deepest, weirdest cuts of the PlayStation era, this app tracks your progress, logs your history, and lets you save your favorites.
+![Version](https://img.shields.io/badge/version-2.2-blue)
+![Platform](https://img.shields.io/badge/platform-Android-green)
+![Build](https://img.shields.io/github/actions/workflow/status/sheikhshahnawaz41299/Retro-Game-Randomizer/android_build.yml)
 
----
+## 🚀 Features
 
-## ✨ Features
-
-* 🖥️ **Interactive GUI:** Built with Python's native Tkinter for a clean, windowed user experience—no more staring at a command line.
-* 🕹️ **Multi-Console Support:** Swap between PS1, PS2, PS3, and PSP databases seamlessly. The app manages separate tracking files for each console.
-* 🎲 **Smart Randomizer:** Pulls 10 random games at a time and removes them from the active pool so you never see duplicates.
-* 📊 **Progress Tracking:** A live dashboard shows exactly how many games you've rolled and your total library completion percentage.
-* 📋 **Quick Copy:** A one-click button next to every roll copies the game title straight to your clipboard for easy Google/YouTube searching.
-* ⭐ **Favorites Manager:** Save the bangers to a dedicated list and manage/delete them using a clean pop-up UI.
-* 💾 **Local Saving:** Automatically creates text logs of your roll history and JSON files of your remaining game pools so you never lose your progress.
+- **Zero-Latency Offline Mode:** No internet connection required. Your game lists stay on your device.
+- **Multi-Console Support:** Separate memory slots for **PSP, PS1, PS2, and PS3**.
+- **Smart Progress Tracking:** The app remembers which games you've already rolled so you never see the same game twice until you've finished the list.
+- **Favorites System:** "Star" the games you're excited about and manage them in a dedicated favorites menu.
+- **Privacy First:** No tracking, no data collection, and no "CORS" browser blocking issues.
 
 ---
 
-## 🛠️ Requirements
+## 📲 Installation
 
-This application is built with standard Python libraries. **No external dependencies or `pip installs` are required!**
-
-* **Python 3.x** or higher
-* An active internet connection (only required for the **very first run** of a new console to download the master database list).
+1. Go to the **[Releases](https://github.com/sheikhshahnawaz41299/Retro-Game-Randomizer/releases)** section of this repository.
+2. Download the latest `RetroRandomizer.apk`.
+3. Open the file on your Android device.
+4. If prompted, allow "Install from Unknown Sources" (since this is your own private build!).
+5. Launch and play!
 
 ---
 
-## 🚀 How to Run
+## 🛠 How to Use
 
-1. Clone or download this repository to your local machine.
-2. Open your terminal or command prompt.
-3. Navigate to the folder containing the script.
-4. Run the application using:
-   ```bash
-   python randomizer.py
+### 1. Prepare your List
+Create a simple `.txt` file for your games. Put **one game title per line**.
+Example (`ps2_games.txt`):
+```text
+God Hand
+Shadow of the Colossus
+Metal Gear Solid 3
+Final Fantasy X
