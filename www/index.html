@@ -314,13 +314,11 @@
             }
         }
 
-	async function loadConsoleData() {
+		async function loadConsoleData() {
             const statsText = document.getElementById('stats-text');
-            document.getElementById('games-container').innerHTML = ''; // Clear screen
+            document.getElementById('games-container').innerHTML = '';
             
-            // Check Local Storage first
             const storedMaster = localStorage.getItem(`${currentConsole}_master`);
-            
             if (storedMaster) {
                 allGames = JSON.parse(storedMaster);
                 loadRemainingPool();
@@ -328,57 +326,35 @@
             }
 
             statsText.innerText = `Downloading ${currentConsole}...`;
-            statsText.style.color = 'var(--accent-orange)';
             
+            // This is a Google Script Proxy - Android phones trust this much more than GitHub directly
             const targetUrl = CONSOLES[currentConsole];
-            let data = null;
-
-            // Strategy 1: Direct Fetch (In case the browser allows it)
-            try {
-                const res = await fetch(targetUrl);
-                if (res.ok) data = await res.json();
-            } catch (e) { console.log("Direct fetch blocked by CORS"); }
-
-	// Strategy 2: Enhanced Proxy for Mobile
-            if (!data) {
-                try {
-                    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, {
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-                    if (res.ok) data = await res.json();
-                } catch (e) { console.log("Proxy 1 failed"); }
-            }
-
-            // Strategy 3: allorigins GET (The bulletproof backup method)
-            if (!data) {
-                try {
-                    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
-                    if (res.ok) {
-                        const raw = await res.json();
-                        data = JSON.parse(raw.contents); // Unpack the hidden data string
-                    }
-                } catch (e) { console.log("Proxy 2 blocked"); }
-            }
-
-            // If the browser managed to block all 3 strategies
-            if (!data) {
-                showToast("Download Blocked by Browser!", "var(--accent-red)");
-                statsText.innerText = "Download Blocked";
-                return;
-            }
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
             try {
-                // Get unique titles, sort them, filter blanks
+                const response = await fetch(proxyUrl);
+                const rawData = await response.json();
+                const data = JSON.parse(rawData.contents); // Unpack the data
+
                 let titles = [...new Set(Object.values(data))].filter(t => t.trim() !== "").sort();
-                
                 allGames = titles;
                 localStorage.setItem(`${currentConsole}_master`, JSON.stringify(allGames));
                 
-                statsText.style.color = 'var(--primary-color)';
                 loadRemainingPool();
             } catch (error) {
-                showToast("Data Processing Failed!", "var(--accent-red)");
-                statsText.innerText = "Error Parsing";
+                console.error(error);
+                showToast("Download Blocked! Trying backup...", "var(--accent-orange)");
+                // Backup method
+                try {
+                    const altRes = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+                    const altData = await altRes.json();
+                    allGames = [...new Set(Object.values(altData))].filter(t => t.trim() !== "").sort();
+                    localStorage.setItem(`${currentConsole}_master`, JSON.stringify(allGames));
+                    loadRemainingPool();
+                } catch (e) {
+                    showToast("Still Blocked. Check Data/WiFi.", "var(--accent-red)");
+                    statsText.innerText = "Connection Blocked";
+                }
             }
         }
 
