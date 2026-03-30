@@ -1,0 +1,56 @@
+name: Build and Release APK
+
+on:
+  push:
+    tags:
+      - 'v*' # This triggers the build only when you push a tag like v1.0, v1.1, etc.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create a Release and upload the file
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "Retro Randomizer" "com.retrorandomizer.app" --web-dir .
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Add Android Platform
+        run: npx cap add android
+
+      - name: Sync Web Code
+        run: npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
+          # Rename the file so it's easier to find
+          mv app/build/outputs/apk/debug/app-debug.apk ../RetroRandomizer.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: RetroRandomizer.apk
+          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
