@@ -20,16 +20,19 @@ jobs:
         with:
           node-version: 22
 
-      - name: Create Package File
-        # Capacitor NEEDS a package.json to function, so we create a fake one
+      - name: Prepare Web Directory
+        # Capacitor prefers a named folder like 'www' instead of '.'
         run: |
+          mkdir www
+          cp index.html www/
           echo '{"name": "retro-randomizer", "version": "1.0.0", "dependencies": {"@capacitor/core": "latest", "@capacitor/cli": "latest", "@capacitor/android": "latest"}}' > package.json
 
       - name: Install Capacitor
         run: npm install
 
       - name: Initialize Capacitor
-        run: npx cap init "Retro Randomizer" "com.retrorandomizer.app" --web-dir .
+        # We point --web-dir to 'www' now
+        run: npx cap init "Retro Randomizer" "com.retrorandomizer.app" --web-dir www
 
       - name: Add Android Platform
         run: npx cap add android
