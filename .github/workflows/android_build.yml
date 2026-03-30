@@ -21,11 +21,10 @@ jobs:
           node-version: 22
 
       - name: Prepare Web Directory
-        # Capacitor prefers a named folder like 'www' instead of '.'
         run: |
-          mkdir www
-          cp index.html www/
-          echo '{"name": "retro-randomizer", "version": "1.0.0", "dependencies": {"@capacitor/core": "latest", "@capacitor/cli": "latest", "@capacitor/android": "latest"}}' > package.json
+           mkdir -p www
+           cp index.html www/ || true
+           echo '{"name": "retro-randomizer", "version": "1.0.0", "dependencies": {"@capacitor/core": "latest", "@capacitor/cli": "latest", "@capacitor/android": "latest"}}' > package.json
 
       - name: Install Capacitor
         run: npm install
